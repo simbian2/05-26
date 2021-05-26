@@ -1,0 +1,186 @@
+<!--포스트는 바디로 겟은 쿼리로 내용을 보낸다.-->
+<!--네트워크의 헤더, 네트워크 헤더의 바디-->
+<!--네트워크의 요청과 응답창-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Api</title>
+    <script type = "text/javascript">
+
+        //https://dapi.kakao.com/v2/local/search/address.json?analyze_type=similar&page=1&size=10&query=
+        //headers -> Authorization: KakaoAK {REST_API_KEY}
+        //REST_API_KEY -> f38672340ae732f5ccfece4d8b810a62
+
+        document.addEventListener('DOMContentLoaded',init)
+
+        async function init(){
+            // let options = {
+            //     method:'GET',
+            //     headers:{
+            //         "Authorization":"KakaoAK f38672340ae732f5ccfece4d8b810a62"
+            //     }
+            // }
+            // let result = await fetch('https://dapi.kakao.com/v2/local/search/address.json?analyze_type=similar&page=1&size=10&query=서울특별시 용산구 이태원동 116-6',options)
+            // let json = await result.json()
+            // //axios나 fetch는 json으로 가져온다.
+            const searchBtn = document.querySelector('#addressSearch')
+            searchBtn.addEventListener('click',addressFn)
+        }
+
+        async function addressFn(){
+            const addressInput = document.querySelector('#addressInput')
+            const addressList = document.querySelector('#addressList')
+            const li = document.createElement('li')
+            if(addressInput.value.length == 0){
+                alert('주소를 입력해주세요')
+                addressInput.focus()
+                return false
+            }
+
+            let options = {
+                method:'GET',
+                headers:{
+                    "Authorization":"KakaoAK f38672340ae732f5ccfece4d8b810a62"
+                }
+            }   
+
+            let result = await fetch('https://dapi.kakao.com/v2/local/search/address.json?analyze_type=similar&page=1&size=10&query='+addressInput.value,options)
+            let json = await result.json()
+            addressList.innerHTML = ''
+
+            if(json.documents.length == 0){
+                addressList.innerHTML = `결과값이 존재하지 않습니다.`;
+                return false;
+            }
+            json.documents.forEach(v=>{
+                console.log(v.address_name)
+                const li = document.createElement('li')
+                li.innerHTML = v.address_name
+                li.dataset.x = v.x
+                li.dataset.y = v.y
+                li.addEventListener('click',getAddressDetail)
+                addressList.appendChild(li)
+            })
+
+        }
+
+        async function getAddressDetail(){
+            const addressList = document.querySelector('#addressList')
+            let x = this.dataset.x
+            let y = this.dataset.y
+
+            let options = {
+                method:'GET',
+                headers:{
+                    "Authorization":"KakaoAK f38672340ae732f5ccfece4d8b810a62"
+                }
+            }   
+
+            let url = `https://dapi.kakao.com/v2/local/geo/coord2address.json?input_coord=WGS84&x=${x}&y=${y}`
+            let result = await fetch(url,options)
+            let json = await result.json()
+            
+
+            if(json.documents[0].road_address == null){
+                let address_name = json.documents[0].address.address_name
+                let zone_no = json.documents[0].address.zone_no
+                document.querySelector('#address1').value = `${address_name}`
+                document.querySelector('#addressNumber').value = zone_no
+            } else {
+                let address_name = json.documents[0].road_address.address_name
+                let building_name = json.documents[0].road_address.building_name
+                let zone_no = json.documents[0].road_address.zone_no
+                
+                document.querySelector('#addressNumber').value = zone_no
+                document.querySelector('#address1').value = `${address_name} ${building_name}`
+            }
+
+            console.log(json.documents[0])
+
+        }
+
+    </script>
+</head>
+<body>
+    <div>
+        <input type = "text" id = "addressInput" name = "addressInput" placeholder = "주소를 입력해주세요.">
+        <button id = "addressSearch">주소검색하기</button>
+    </div>
+    <ul id = "addressList">
+        <li></li>
+    </ul>
+    <form action = "/send" method = "post">
+        <input type = "text" name = "addressNumber" id = "addressNumber" placeholder = "우편번호"  size = "10">
+        <br/><input type = "text" name = "address1" id = "address1" placeholder = "주소" size = "40" value = "">
+        <br/><input type = "text" name = "address2" id = "address2" placeholder = "상세주소" size = "40">
+        <input type = "submit">
+    </form>
+</body>
+
+<h1>비동기 활용하기 GET</h1>
+<button id = "btn">통신하기</button>
+<div id = "getroot"></div>
+<div id = "lodding" style = "display:none;">
+<img src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADjCAMAAADdXVr2AAAAgVBMVEX39/cAAADw8PDr6+vT09O8vLykpKSNjY11dXVeXl4vLy8XFxdGRkb6+vr////09PSFhYXFxcXZ2dlBQUFvb2+Xl5eenp7Y2Njk5ORpaWnf39++vr5RUVGwsLAQEBBYWFg3Nzd+fn7Ly8soKCisrKwgICAbGxtMTEx5eXk7OztiYmL9pD21AAANYUlEQVR4nO2dbX+qPAyHBRScW4ooIqKiMj1u+/4f8C4+ILRpbdUWb3/+3x6P62WSJk1L6XTeeuutt9566623tAWkFEDb4zAiQqJgNf76m0zJ6wFCJ3HOGvRI28N5sEj27dS0cF/KgCRyGKUvxAddls5xXsh+Lk/n7F8m/kiM4DnbFzEfZBid47wIHvnB8ZYvwpfjeB8vEX0wxekcJ2x7aFcFANeKSFiK8LIn907S6W4nEz/yZFUkJCK8Qo4XHvTgIauLeMHnaaCrSAwIExFeJMEL3bNaAiTUKvnnUbnzlYkmilvwLnBtAZKZ81lT7iwFfDfgNena4CN/DToqJ8H59PFcTrb5qGd+snLwZZw2Hms7+3yQ8nSUD13l6OJhdK5rGKgpskHxVpj5dPFQOrvmCzE6yjdHBqyJhxvPqvkgwvHy7/vxBHQ28cgEx0NnTz08EZ1N76TrUxzv0/G4D2vhiVzTLh6X9Cq8Pmc+LTwhnVW8mQjv05myY9bBExvPKh6aF46zC9ci0sET09nEg60Qj9YuzKA18CTGs4o3EuPlO/bDyngyOqtlCxnkQj4naLqnOp6MzmrVAr7YfDQ5NIatjCc1nuWaeicx36xhPmU8GZ3dkrrsD0nM12iiqOI9TeSVIl9i8+XruvlU8Z7HNTuHTR+J+eqNCUW8pzIeNV9fkhzy2s+thvdE88pRnsx8w4v51PBkdC0YT7IqOvBd+hJKeE9nvCvJ4bI/otSlfjrj0XHPZearTCPeYxhVeE82rx">
+</div>
+
+
+<script type = "text/javascript">
+const btn = document.querySelector('#btn')
+btn.addEventListener('click',btnFn)
+function btnFn(){
+    console.log('req click')
+    document.querySelector('#lodding').style.display='block'
+    let options = {
+        method:'GET',
+    }
+    fetch('http://localhost:3000/login?userid=asdf&userpw=asdf',options)
+    .then(data=>{
+        console.log(data)
+        if(data.status == 404){ 
+            const root = document.querySelector('#getroot')
+            root.innerHTML = '페이지가 존재하지 않음'
+        }
+        return data.text()
+    })
+    .then(text=>{
+        document.querySelector('#lodding').style.display='none'
+        const root = document.querySelector('#getroot')
+        root.innerHTML += text + '<br/>'
+    })
+}
+</script>
+
+<h1>비동기 활용하기 POST</h1>
+<button id = "btn2">통신하기</button>
+<div id = "postroot"></div>
+
+
+<script type = "text/javascript">
+const btn2 = document.querySelector('#btn2')
+btn2.addEventListener('click',btnFn2)
+function btnFn2(){
+    console.log('req click')
+    let options = {
+        method:'POST',
+        headers:{
+            'content-type':'application/json'
+        },
+        //body:JSON.stringify({userid:'asdfasdf',userpw:'asdfasdf'})
+        //API 와 TOKEN-JWT 와 WEB-SOCKET
+        body:`{"userid":"asdfasdf","userpw":"asdfasdf"}`
+    }
+    fetch('http://localhost:3000/login',options)
+    .then(data=>{
+        return data.text()
+    })
+    .then(text=>{
+        const root = document.querySelector('#postroot')
+        root.innerHTML += text + '<br/>'
+    })
+}
+</script>
+</html>
